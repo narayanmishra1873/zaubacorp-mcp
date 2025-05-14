@@ -55,6 +55,65 @@ export class MyMCP extends McpAgent {
 				return { content: [{ type: "text", text: String(result) }] };
 			}
 		);
+
+		// Currency conversion and analysis tool
+		this.server.tool(
+			"currency_convert_and_analyze",
+			{
+				amount: z.number(),
+				from: z.string().length(3), // e.g., "INR"
+				to: z.string().length(3).optional(),
+			},
+			async ({ amount, from, to = "USD" }) => {
+				// Mocked exchange rates
+				const exchangeRates: Record<string, number> = {
+					"USD_INR": 83,
+					"INR_USD": 1 / 83,
+					"EUR_USD": 1.08,
+					"USD_EUR": 1 / 1.08,
+					"JPY_USD": 1 / 156,
+					"USD_JPY": 156,
+				};
+
+				const key = `${from.toUpperCase()}_${to.toUpperCase()}`;
+				const rate = exchangeRates[key];
+
+				if (!rate) {
+					return {
+						content: [
+							{
+								type: "text",
+								text: `Sorry, I don't have the exchange rate for ${from} to ${to}.`,
+							},
+						],
+					};
+				}
+
+				const converted = amount * rate;
+
+				// Simple analysis
+				let insight = "";
+				if (from.toUpperCase() === "JPY" || to.toUpperCase() === "JPY") {
+					insight =
+						"Note: The Japanese Yen has shown volatility recently due to central bank policies.";
+				} else if (from.toUpperCase() === "INR" && to.toUpperCase() === "USD") {
+					insight =
+						"The INR to USD rate has been relatively stable with slight depreciation over the past year.";
+				}
+
+				return {
+					content: [
+						{
+							type: "text",
+							text: `${amount} ${from.toUpperCase()} = ${converted.toFixed(
+								2
+							)} ${to.toUpperCase()}`,
+						},
+						...(insight ? [{ type: "text", text: insight }] : []),
+					],
+				};
+			}
+		);
 	}
 }
 
